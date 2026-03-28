@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Net ↔ Brut</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f4f5f2;
+    --surface: #ffffff;
+    --surface2: #f0f1ee;
+    --border: #e0e2dc;
+    --accent: #3a7d2c;
+    --accent-dim: #2f6523;
+    --accent-light: rgba(58,125,44,0.08);
+    --accent-light-border: rgba(58,125,44,0.2);
+    --text: #1a1d18;
+    --text-muted: #8a9085;
+    --text-dim: #5a6055;
+    --danger: #c0392b;
+    --radius: 12px;
+    --transition: 180ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  html { font-size: 16px; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    padding: 40px 20px 80px;
+    background-image:
+      radial-gradient(ellipse 600px 400px at 20% 10%, rgba(58,125,44,0.05) 0%, transparent 70%),
+      radial-gradient(ellipse 400px 600px at 80% 80%, rgba(58,125,44,0.03) 0%, transparent 70%);
+  }
+
+  /* ── Layout ── */
+  .container {
+    max-width: 700px;
+    margin: 0 auto;
+  }
+
+  /* ── Header ── */
+  header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 48px;
+  }
+
+  .logo {
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: clamp(2rem, 5vw, 2.8rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    color: var(--text);
+  }
+
+  .logo span {
+    color: var(--accent);
+    font-weight: 700;
+  }
+
+  .subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 300;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(58,125,44,0.2), transparent);
+  }
+
+  .card-label {
+    font-size: 0.7rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-muted);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── Grid calc ── */
+  .calc-grid {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .arrow-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding-top: 24px;
+  }
+
+  .arrow-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--accent);
+    font-size: 0.75rem;
+    transition: var(--transition);
+  }
+
+  /* ── Input Field ── */
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .field-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .field label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .priority-btn {
+    font-size: 0.65rem;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: var(--transition);
+    font-family: 'DM Mono', monospace;
+  }
+
+  .priority-btn.active {
+    background: rgba(58,125,44,0.1);
+    border-color: var(--accent-dim);
+    color: var(--accent);
+  }
+
+  .input-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  .input-wrap input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 48px 14px 16px;
+    font-family: 'DM Mono', monospace;
+    font-size: 1.4rem;
+    font-weight: 400;
+    color: var(--text);
+    transition: var(--transition);
+    outline: none;
+    -moz-appearance: textfield;
+  }
+
+  .input-wrap input::-webkit-outer-spin-button,
+  .input-wrap input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+  .input-wrap input:focus {
+    border-color: var(--accent-dim);
+    background: #eaf2e8;
+  }
+
+  .input-wrap input.priority-active {
+    border-color: rgba(58,125,44,0.4);
+  }
+
+  .input-unit {
+    position: absolute;
+    right: 14px;
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    pointer-events: none;
+  }
+
+  /* ── Result bar ── */
+  .result-bar {
+    background: rgba(58,125,44,0.06);
+    border: 1px solid rgba(58,125,44,0.18);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 4px;
+  }
+
+  .result-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--accent-dim);
+    font-weight: 500;
+  }
+
+  .result-amount {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 500;
+    color: var(--accent);
+    letter-spacing: -0.02em;
+  }
+
+  .result-meta {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+  }
+
+  /* ── Settings row ── */
+  .settings-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .setting-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .setting-field label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .setting-field select,
+  .setting-field input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    color: var(--text);
+    outline: none;
+    transition: var(--transition);
+    width: 100%;
+  }
+
+  .setting-field select:focus,
+  .setting-field input:focus {
+    border-color: var(--accent-dim);
+  }
+
+  .setting-field select {
+    cursor: pointer;
+    -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7068' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 32px;
+  }
+
+  /* ── Horaire ── */
+  .horaire-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* ── Buttons ── */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: var(--transition);
+    border: 1px solid;
+    font-family: 'DM Sans', sans-serif;
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #ffffff;
+  }
+
+  .btn-primary:hover {
+    background: var(--accent-dim);
+    border-color: var(--accent-dim);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-dim);
+  }
+
+  .btn-ghost:hover {
+    border-color: var(--text-muted);
+    color: var(--text);
+  }
+
+  .btn-danger {
+    background: transparent;
+    border-color: var(--border);
+    color: var(--text-muted);
+  }
+
+  .btn-danger:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+  }
+
+  /* ── History ── */
+  .history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .history-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: 1fr auto auto auto;
+    gap: 12px;
+    align-items: center;
+    transition: var(--transition);
+    animation: slideIn 0.25s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .history-item:hover {
+    border-color: var(--text-muted);
+  }
+
+  .history-amounts {
+    display: flex;
+    gap: 12px;
+    align-items: baseline;
+    flex-wrap: wrap;
+  }
+
+  .h-net { font-family: 'DM Mono', monospace; font-size: 0.95rem; color: var(--text); }
+  .h-sep { color: var(--text-muted); font-size: 0.8rem; }
+  .h-brut { font-family: 'DM Mono', monospace; font-size: 0.95rem; color: var(--text-dim); }
+  .h-charges { font-family: 'DM Mono', monospace; font-size: 0.75rem; color: var(--text-muted); }
+  .h-rate { font-size: 0.72rem; color: var(--text-muted); font-family: 'DM Mono', monospace; }
+
+  .history-action {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    font-size: 0.75rem;
+  }
+
+  .history-action:hover { color: var(--text); }
+  .history-action.del:hover { color: var(--danger); }
+
+  .empty-state {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    padding: 24px;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+  }
+
+  /* ── Toast ── */
+  .toast {
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 0.82rem;
+    color: var(--surface);
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    z-index: 100;
+    white-space: nowrap;
+  }
+
+  .toast.show {
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* ── Formula note ── */
+  .formula-note {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    font-family: 'DM Mono', monospace;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: var(--surface2);
+    border-radius: 6px;
+    border-left: 2px solid var(--border);
+  }
+
+  @media (max-width: 520px) {
+    .calc-grid { grid-template-columns: 1fr; }
+    .arrow-col { flex-direction: row; padding-top: 0; }
+    .settings-row, .horaire-row { grid-template-columns: 1fr; }
+    .history-item { grid-template-columns: 1fr auto; }
+    .h-rate, .h-charges { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div>
+      <div class="logo">Net <span>↔</span> Brut</div>
+      <div class="subtitle">Calculatrice de conversion</div>
+    </div>
+  </header>
+
+  <!-- MAIN CALC -->
+  <div class="card">
+    <div class="card-label">Calcul principal</div>
+
+    <div class="calc-grid">
+      <!-- NET -->
+      <div class="field">
+        <div class="field-header">
+          <label>Montant net</label>
+          <button class="priority-btn active" id="net-priority" onclick="setPriority('net')">Référence</button>
+        </div>
+        <div class="input-wrap">
+          <input type="number" id="net" placeholder="0.00" step="0.01" oninput="onNetInput()" />
+          <span class="input-unit">EUR</span>
+        </div>
+      </div>
+
+      <!-- ARROW -->
+      <div class="arrow-col">
+        <div class="arrow-icon">⇄</div>
+      </div>
+
+      <!-- BRUT -->
+      <div class="field">
+        <div class="field-header">
+          <label>Montant brut</label>
+          <button class="priority-btn" id="brut-priority" onclick="setPriority('brut')">Référence</button>
+        </div>
+        <div class="input-wrap">
+          <input type="number" id="brut" placeholder="0.00" step="0.01" oninput="onBrutInput()" />
+          <span class="input-unit">EUR</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- RESULT -->
+    <div class="result-bar" id="result-bar" style="margin-top:20px">
+      <div>
+        <div class="result-label">Montant des charges</div>
+        <div class="result-meta" id="result-formula">brut = net / (1 − taux)</div>
+      </div>
+      <div class="result-amount" id="result-amount">—</div>
+    </div>
+
+    <div class="formula-note">
+      brut = net ÷ (1 − charges/100) &nbsp;|&nbsp; net = brut × (1 − charges/100)
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div class="card">
+    <div class="card-label">Paramètres</div>
+    <div class="settings-row">
+      <div class="setting-field">
+        <label>Taux de charges (%)</label>
+        <input type="number" id="taux" value="23.2" step="0.1" min="0" max="100" oninput="recalculate()" />
+      </div>
+      <div class="setting-field">
+        <label>Arrondi</label>
+        <select id="decimales" onchange="recalculate()">
+          <option value="2">2 décimales</option>
+          <option value="3">3 décimales</option>
+          <option value="4">4 décimales</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- HORAIRE -->
+  <div class="card">
+    <div class="card-label">Simulation horaire</div>
+    <div class="horaire-row">
+      <div class="setting-field">
+        <label>Taux horaire brut (EUR/h)</label>
+        <input type="number" id="taux-horaire" placeholder="0.00" step="0.01" oninput="onHoraireInput()" />
+      </div>
+      <div class="setting-field">
+        <label>Nombre d'heures</label>
+        <input type="number" id="nb-heures" placeholder="0" step="0.5" oninput="onHoraireInput()" />
+      </div>
+    </div>
+    <div class="result-bar" style="margin-top:16px">
+      <div>
+        <div class="result-label">Brut calculé</div>
+        <div class="result-meta">taux × heures</div>
+      </div>
+      <div class="result-amount" id="horaire-result">—</div>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="card">
+    <div class="card-label">Actions</div>
+    <div class="btn-row">
+      <button class="btn btn-primary" onclick="saveCalc()">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 7l4 4 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Enregistrer
+      </button>
+      <button class="btn btn-ghost" onclick="copyLink()">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><rect x="5" y="1" width="8" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M9 10v2a1 1 0 01-1 1H2a1 1 0 01-1-1V5a1 1 0 011-1h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        Copier le lien
+      </button>
+    </div>
+  </div>
+
+  <!-- HISTORY -->
+  <div class="card">
+    <div class="card-label">Derniers calculs</div>
+    <div id="history-list" class="history-list"></div>
+    <div class="btn-row" style="margin-top:14px">
+      <button class="btn btn-ghost" onclick="exportCSV()">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M7 1v8M4 6l3 3 3-3M2 10v2a1 1 0 001 1h8a1 1 0 001-1v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Exporter CSV
+      </button>
+      <button class="btn btn-danger" onclick="clearHistory()">
+        <svg width="13" height="13" viewBox="0 0 14 14" fill="none"><path d="M2 3h10M5 3V2h4v1M6 6v4M8 6v4M3 3l.7 8.3a1 1 0 001 .7h4.6a1 1 0 001-.7L11 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Tout supprimer
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  let priority = 'net';
+  let history = JSON.parse(localStorage.getItem('nb-history') || '[]');
+
+  function setPriority(p) {
+    priority = p;
+    document.getElementById('net-priority').classList.toggle('active', p === 'net');
+    document.getElementById('brut-priority').classList.toggle('active', p === 'brut');
+    recalculate();
+  }
+
+  function getTaux() { return parseFloat(document.getElementById('taux').value) || 0; }
+  function getDecimals() { return parseInt(document.getElementById('decimales').value); }
+  function round(v) { return parseFloat(v.toFixed(getDecimals())); }
+
+  function onNetInput() { priority = 'net'; syncPriorityButtons(); recalculate(); }
+  function onBrutInput() { priority = 'brut'; syncPriorityButtons(); recalculate(); }
+
+  function syncPriorityButtons() {
+    document.getElementById('net-priority').classList.toggle('active', priority === 'net');
+    document.getElementById('brut-priority').classList.toggle('active', priority === 'brut');
+  }
+
+  function recalculate() {
+    const taux = getTaux();
+    const factor = 1 - taux / 100;
+    const dec = getDecimals();
+
+    const netInput = document.getElementById('net');
+    const brutInput = document.getElementById('brut');
+
+    netInput.classList.toggle('priority-active', priority === 'net');
+    brutInput.classList.toggle('priority-active', priority === 'brut');
+
+    if (priority === 'net') {
+      const net = parseFloat(netInput.value);
+      if (!isNaN(net) && net > 0 && factor > 0) {
+        const brut = round(net / factor);
+        brutInput.value = brut.toFixed(dec);
+        showResult(brut - net);
+      } else {
+        brutInput.value = '';
+        clearResult();
+      }
+    } else {
+      const brut = parseFloat(brutInput.value);
+      if (!isNaN(brut) && brut > 0) {
+        const net = round(brut * factor);
+        netInput.value = net.toFixed(dec);
+        showResult(brut - net);
+      } else {
+        netInput.value = '';
+        clearResult();
+      }
+    }
+  }
+
+  function showResult(charges) {
+    const dec = getDecimals();
+    document.getElementById('result-amount').textContent = charges.toFixed(dec) + ' €';
+    document.getElementById('result-amount').style.color = 'var(--accent)';
+  }
+
+  function clearResult() {
+    document.getElementById('result-amount').textContent = '—';
+  }
+
+  function onHoraireInput() {
+    const th = parseFloat(document.getElementById('taux-horaire').value);
+    const nh = parseFloat(document.getElementById('nb-heures').value);
+    const dec = getDecimals();
+    if (!isNaN(th) && !isNaN(nh) && th > 0 && nh > 0) {
+      const brut = th * nh;
+      document.getElementById('horaire-result').textContent = brut.toFixed(dec) + ' €';
+      // Auto-fill brut
+      document.getElementById('brut').value = brut.toFixed(dec);
+      priority = 'brut';
+      syncPriorityButtons();
+      recalculate();
+    } else {
+      document.getElementById('horaire-result').textContent = '—';
+    }
+  }
+
+  function saveCalc() {
+    const net = document.getElementById('net').value;
+    const brut = document.getElementById('brut').value;
+    const taux = getTaux();
+    if (!net || !brut) { showToast('Aucun calcul à enregistrer'); return; }
+    const entry = { net: parseFloat(net), brut: parseFloat(brut), taux, ts: Date.now() };
+    history.unshift(entry);
+    if (history.length > 20) history.pop();
+    localStorage.setItem('nb-history', JSON.stringify(history));
+    renderHistory();
+    showToast('Calcul enregistré ✓');
+  }
+
+  function renderHistory() {
+    const el = document.getElementById('history-list');
+    if (!history.length) {
+      el.innerHTML = '<div class="empty-state">Aucun calcul enregistré</div>';
+      return;
+    }
+    el.innerHTML = history.map((e, i) => `
+      <div class="history-item">
+        <div class="history-amounts">
+          <span class="h-net">${e.net.toFixed(2)} €</span>
+          <span class="h-sep">net</span>
+          <span class="h-sep">↔</span>
+          <span class="h-brut">${e.brut.toFixed(2)} €</span>
+          <span class="h-sep">brut</span>
+        </div>
+        <span class="h-rate">${e.taux}%</span>
+        <span class="h-charges">Δ ${(e.brut - e.net).toFixed(2)} €</span>
+        <button class="history-action" title="Charger" onclick="loadEntry(${i})">↑</button>
+        <button class="history-action del" title="Supprimer" onclick="deleteEntry(${i})">×</button>
+      </div>
+    `).join('');
+  }
+
+  function loadEntry(i) {
+    const e = history[i];
+    document.getElementById('net').value = e.net.toFixed(2);
+    document.getElementById('brut').value = e.brut.toFixed(2);
+    document.getElementById('taux').value = e.taux;
+    priority = 'net';
+    syncPriorityButtons();
+    recalculate();
+    showToast('Calcul chargé');
+  }
+
+  function deleteEntry(i) {
+    history.splice(i, 1);
+    localStorage.setItem('nb-history', JSON.stringify(history));
+    renderHistory();
+  }
+
+  function clearHistory() {
+    if (!history.length) return;
+    history = [];
+    localStorage.setItem('nb-history', JSON.stringify(history));
+    renderHistory();
+    showToast('Historique effacé');
+  }
+
+  function exportCSV() {
+    if (!history.length) { showToast('Aucune donnée à exporter'); return; }
+    const header = 'Net (EUR),Brut (EUR),Charges (EUR),Taux (%),Date\n';
+    const rows = history.map(e => {
+      const d = new Date(e.ts).toLocaleDateString('fr-FR');
+      return `${e.net},${e.brut},${(e.brut-e.net).toFixed(2)},${e.taux},${d}`;
+    }).join('\n');
+    const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'net-brut.csv';
+    a.click();
+    showToast('CSV exporté ✓');
+  }
+
+  function copyLink() {
+    const net = document.getElementById('net').value;
+    const brut = document.getElementById('brut').value;
+    const taux = getTaux();
+    const url = `${location.href.split('?')[0]}?net=${net}&brut=${brut}&taux=${taux}`;
+    navigator.clipboard.writeText(url).then(() => showToast('Lien copié ✓')).catch(() => showToast('Erreur de copie'));
+  }
+
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // Load from URL params
+  function loadFromURL() {
+    const p = new URLSearchParams(location.search);
+    if (p.get('net')) document.getElementById('net').value = p.get('net');
+    if (p.get('brut')) document.getElementById('brut').value = p.get('brut');
+    if (p.get('taux')) document.getElementById('taux').value = p.get('taux');
+    if (p.get('net') || p.get('brut')) recalculate();
+  }
+
+  loadFromURL();
+  renderHistory();
+</script>
+</body>
+</html>
